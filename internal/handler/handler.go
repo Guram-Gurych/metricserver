@@ -24,6 +24,11 @@ func (h *MetricHandler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 	}
 
 	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) != 5 {
+		http.Error(w, "Not Found: Malformed URL", http.StatusNotFound)
+		return
+	}
+
 	metricType := parts[2]
 	metricName := parts[3]
 	metricValue := parts[4]
