@@ -73,15 +73,19 @@ func (a *Agent) pollMetrics() {
 }
 
 func (a *Agent) reportMetrics() {
-	for metricName, metricValue := range a.storage.Gauges {
-		valueStr := strconv.FormatFloat(metricValue, 'f', -1, 64)
-		a.sendMetric("gauge", metricName, valueStr)
+	for name, value := range a.storage.Gauges {
+		valueStr := strconv.FormatFloat(value, 'f', -1, 64)
+		a.sendMetric("gauge", name, valueStr)
 	}
 
-	pollCount := a.storage.Counters["PollCount"]
-	valueStr := strconv.FormatInt(pollCount, 10)
-	a.sendMetric("counter", "PollCount", valueStr)
-	a.storage.Counters["PollCount"] = 0
+	for name, value := range a.storage.Counters {
+		valueStr := strconv.FormatInt(value, 10)
+		a.sendMetric("counter", name, valueStr)
+	}
+
+	if _, ok := a.storage.Counters["PollCount"]; ok {
+		a.storage.Counters["PollCount"] = 0
+	}
 }
 
 func (a *Agent) sendMetric(metricType, metricName, metricValue string) {
