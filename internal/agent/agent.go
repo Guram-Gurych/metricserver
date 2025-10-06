@@ -85,7 +85,7 @@ func (a *Agent) reportMetrics() {
 }
 
 func (a *Agent) sendMetric(metricType, metricName, metricValue string) {
-	url := fmt.Sprintf("/%s/update/%s/%s/%s", a.serverAddress, metricType, metricName, metricValue)
+	url := fmt.Sprintf("%s/update/%s/%s/%s", a.serverAddress, metricType, metricName, metricValue)
 
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
