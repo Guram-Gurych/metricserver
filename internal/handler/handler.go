@@ -3,9 +3,9 @@ package handler
 import (
 	"github.com/Guram-Gurych/metricserver.git/internal/model"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 type MetricHandler struct {
@@ -19,20 +19,9 @@ func NewMetricHandler(repo repository.MetricRepository) *MetricHandler {
 }
 
 func (h *MetricHandler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST requests are allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) != 5 {
-		http.Error(w, "Not Found: Malformed URL", http.StatusNotFound)
-		return
-	}
-
-	metricType := parts[2]
-	metricName := parts[3]
-	metricValue := parts[4]
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	metricValue := chi.URLParam(r, "metricValue")
 
 	if metricName == "" {
 		http.Error(w, "Not Found: Metric name is required", http.StatusNotFound)

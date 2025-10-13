@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -91,7 +92,10 @@ func TestMetricHandler_UpdateMetric(t *testing.T) {
 			req := httptest.NewRequest(test.method, test.url, nil)
 			rec := httptest.NewRecorder()
 
-			handler.UpdateMetric(rec, req)
+			router := chi.NewRouter()
+			router.Post("/update/{metricType}/{metricName}/{metricValue}", handler.UpdateMetric)
+			router.ServeHTTP(rec, req)
+			
 			assert.Equal(t, test.expectedStatus, rec.Code, "Код ответа не совпадает с ожидаемым")
 		})
 	}
