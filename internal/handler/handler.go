@@ -3,9 +3,9 @@ package handler
 import (
 	"github.com/Guram-Gurych/metricserver.git/internal/model"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 type MetricHandler struct {
@@ -18,21 +18,10 @@ func NewMetricHandler(repo repository.MetricRepository) *MetricHandler {
 	}
 }
 
-func (h *MetricHandler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST requests are allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) != 5 {
-		http.Error(w, "Not Found: Malformed URL", http.StatusNotFound)
-		return
-	}
-
-	metricType := parts[2]
-	metricName := parts[3]
-	metricValue := parts[4]
+func (h *MetricHandler) Post(w http.ResponseWriter, r *http.Request) {
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+	metricValue := chi.URLParam(r, "metricValue")
 
 	if metricName == "" {
 		http.Error(w, "Not Found: Metric name is required", http.StatusNotFound)
@@ -67,4 +56,45 @@ func (h *MetricHandler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *MetricHandler) Get(w http.ResponseWriter, r *http.Request) {
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+
+	var valueStr string
+	var ok bool
+
+	switch metricType {
+	case models.Gauge:
+		var value float64
+
+		value, ok = h.repo.GetGauge(metricName)
+		if ok {
+			valueStr = strconv.FormatFloat(value, 'f', -1, 64)
+		}
+	case models.Counter:
+		var value int64
+
+		value, ok = h.repo.GetCounter(metricName)
+		if ok {
+			valueStr = strconv.FormatInt(value, 10)
+		}
+	default:
+		http.Error(w, "Invalid metric type", http.StatusBadRequest)
+		return
+	}
+
+	if !ok {
+		http.Error(w, "Metric not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte(valueStr))
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
 }

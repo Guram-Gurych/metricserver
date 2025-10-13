@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"fmt"
+	"github.com/go-resty/resty/v2"
 	"log"
 	"math/rand"
 	"net/http"
@@ -13,7 +13,7 @@ import (
 
 type Agent struct {
 	storage        *AgentMetric
-	client         *http.Client
+	client         *resty.Client
 	serverAddress  string
 	pollInterval   time.Duration
 	reportInterval time.Duration
@@ -25,7 +25,7 @@ func NewAgent(serverAddress string, pollInterval, reportInterval time.Duration) 
 			Gauges:   make(map[string]float64),
 			Counters: make(map[string]int64),
 		},
-		client:         &http.Client{},
+		client:         resty.New(),
 		serverAddress:  serverAddress,
 		pollInterval:   pollInterval,
 		reportInterval: reportInterval,
@@ -89,30 +89,23 @@ func (a *Agent) reportMetrics() {
 }
 
 func (a *Agent) sendMetric(metricType, metricName, metricValue string) {
-	url := fmt.Sprintf("%s/update/%s/%s/%s", a.serverAddress, metricType, metricName, metricValue)
+	url := a.serverAddress + "/update/{metricType}/{metricName}/{metricValue}"
 
-	req, err := http.NewRequest(http.MethodPost, url, nil)
+	resp, err := a.client.R().
+		SetHeader("Content-Type", "text/plain").
+		SetPathParams(map[string]string{
+			"metricType":  metricType,
+			"metricName":  metricName,
+			"metricValue": metricValue,
+		}).
+		Post(url)
+
 	if err != nil {
-		log.Printf("Ошибка при создании запроса gauge %s %s: %v", metricType, metricName, err)
+		log.Printf("Ошибка отправки метрики %s (%s): %v", metricName, metricType, err)
 		return
 	}
 
-	req.Header.Set("Content-Type", "text/plain")
-
-	resp, err := a.client.Do(req)
-	if err != nil {
-		log.Printf("Ошибка отправки %s %s: %v", metricType, metricName, err)
-		return
-	}
-
-	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			log.Printf("Не удалось закрыть тело ответа: %v", err)
-		}
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Сервер ответил не 201 статус for gauge %s: %s", metricName, resp.Status)
+	if resp.StatusCode() != http.StatusOK {
+		log.Printf("Сервер ответил со статусом %s для метрики %s", resp.Status(), metricName)
 	}
 }
