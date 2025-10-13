@@ -67,12 +67,16 @@ func (h *MetricHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	switch metricType {
 	case models.Gauge:
-		value, ok := h.repo.GetGauge(metricName)
+		var value float64
+
+		value, ok = h.repo.GetGauge(metricName)
 		if ok {
 			valueStr = strconv.FormatFloat(value, 'f', -1, 64)
 		}
 	case models.Counter:
-		value, ok := h.repo.GetCounter(metricName)
+		var value int64
+
+		value, ok = h.repo.GetCounter(metricName)
 		if ok {
 			valueStr = strconv.FormatInt(value, 10)
 		}
