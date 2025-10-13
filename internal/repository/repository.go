@@ -30,3 +30,19 @@ func (ms *MemStorage) UpdateCounter(name string, value int64) error {
 	ms.counters[name] += value
 	return nil
 }
+
+func (ms *MemStorage) GetGauge(name string) (float64, bool) {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	val, ok := ms.gauges[name]
+	return val, ok
+}
+
+func (ms *MemStorage) GetCounter(name string) (int64, bool) {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	val, ok := ms.counters[name]
+	return val, ok
+}

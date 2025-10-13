@@ -18,7 +18,7 @@ func NewMetricHandler(repo repository.MetricRepository) *MetricHandler {
 	}
 }
 
-func (h *MetricHandler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
+func (h *MetricHandler) Post(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
@@ -56,4 +56,41 @@ func (h *MetricHandler) UpdateMetric(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *MetricHandler) Get(w http.ResponseWriter, r *http.Request) {
+	metricType := chi.URLParam(r, "metricType")
+	metricName := chi.URLParam(r, "metricName")
+
+	var valueStr string
+	var ok bool
+
+	switch metricType {
+	case models.Gauge:
+		value, ok := h.repo.GetGauge(metricName)
+		if ok {
+			valueStr = strconv.FormatFloat(value, 'f', -1, 64)
+		}
+	case models.Counter:
+		value, ok := h.repo.GetCounter(metricName)
+		if ok {
+			valueStr = strconv.FormatInt(value, 10)
+		}
+	default:
+		http.Error(w, "Invalid metric type", http.StatusBadRequest)
+		return
+	}
+
+	if !ok {
+		http.Error(w, "Metric not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte(valueStr))
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
 }
