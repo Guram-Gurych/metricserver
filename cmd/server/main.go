@@ -12,6 +12,7 @@ func main() {
 	metricHandler := handler.NewMetricHandler(storage)
 
 	r := chi.NewRouter()
+	r.Post("/update/{metricType}/{metricName}/{metricValue}", metricHandler.UpdateMetric)
 	r.Post("/update/", metricHandler.UpdateMetric)
 
 	if err := http.ListenAndServe("localhost:8080", r); err != nil {
