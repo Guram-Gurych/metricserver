@@ -15,7 +15,7 @@ type Config struct {
 func InitConfigServer() *Config {
 	var config Config
 
-	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "Адрес для запуска HTTP-сервера")
+	flag.StringVar(&config.ServerAddress, "a", ":8080", "Адрес для запуска HTTP-сервера")
 	flag.Parse()
 
 	return &config
