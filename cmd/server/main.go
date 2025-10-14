@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Guram-Gurych/metricserver.git/internal/config"
 	"github.com/Guram-Gurych/metricserver.git/internal/handler"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository"
 	"github.com/go-chi/chi/v5"
@@ -8,6 +9,7 @@ import (
 )
 
 func main() {
+	cnfg := config.InitConfig()
 	storage := repository.NewMemStorage()
 	metricHandler := handler.NewMetricHandler(storage)
 
@@ -16,7 +18,7 @@ func main() {
 	r.Get("/value/{metricType}/{metricName}", metricHandler.Get)
 	r.Post("/update/", metricHandler.Post)
 
-	if err := http.ListenAndServe("localhost:8080", r); err != nil {
+	if err := http.ListenAndServe(cnfg.ServerAddress, r); err != nil {
 		panic(err)
 	}
 }
