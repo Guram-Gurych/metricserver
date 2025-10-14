@@ -23,11 +23,16 @@ func InitConfigServer() *Config {
 
 func InitConfigAgent() *Config {
 	var config Config
+	var reportInterval int
+	var pollInterval int
 
 	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "Адрес эндпоинта HTTP-сервера")
-	flag.DurationVar(&config.ReportInterval, "r", 10*time.Second, "Частота отправки метрик на сервер")
-	flag.DurationVar(&config.PollInterval, "p", 2*time.Second, "Частота опроса метрик")
+	flag.IntVar(&reportInterval, "r", 10, "Частота отправки метрик на сервер")
+	flag.IntVar(&pollInterval, "p", 2, "Частота опроса метрик")
 	flag.Parse()
+
+	config.ReportInterval = time.Duration(reportInterval) * time.Second
+	config.PollInterval = time.Duration(pollInterval) * time.Second
 
 	if !strings.HasPrefix(config.ServerAddress, "http://") {
 		config.ServerAddress = "http://" + config.ServerAddress
