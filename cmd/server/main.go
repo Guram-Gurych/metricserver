@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	cnfg := config.InitConfig()
+	cnfg := config.InitConfigServer()
 	storage := repository.NewMemStorage()
 	metricHandler := handler.NewMetricHandler(storage)
 

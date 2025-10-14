@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	cnfg := config.InitConfig()
+	cnfg := config.InitConfigAgent()
 	a := agent.NewAgent(cnfg.ServerAddress, cnfg.PollInterval, cnfg.ReportInterval)
 	a.Run()
 }

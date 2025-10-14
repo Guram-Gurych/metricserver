@@ -12,12 +12,21 @@ type Config struct {
 	PollInterval   time.Duration
 }
 
-func InitConfig() *Config {
+func InitConfigServer() *Config {
 	var config Config
 
-	flag.StringVar(&config.ServerAddress, "a", ":8080", "address and port to run server")
-	flag.DurationVar(&config.ReportInterval, "r", 10*time.Second, "frequency of sending metrics to the server")
-	flag.DurationVar(&config.PollInterval, "p", 2*time.Second, "frequency of polling metrics from the runtime package")
+	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "Адрес для запуска HTTP-сервера")
+	flag.Parse()
+
+	return &config
+}
+
+func InitConfigAgent() *Config {
+	var config Config
+
+	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "Адрес эндпоинта HTTP-сервера")
+	flag.DurationVar(&config.ReportInterval, "r", 10*time.Second, "Частота отправки метрик на сервер")
+	flag.DurationVar(&config.PollInterval, "p", 2*time.Second, "Частота опроса метрик")
 	flag.Parse()
 
 	if !strings.HasPrefix(config.ServerAddress, "http://") {
