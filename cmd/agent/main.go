@@ -2,17 +2,11 @@ package main
 
 import (
 	"github.com/Guram-Gurych/metricserver.git/internal/agent"
-	"time"
-)
-
-const serverAddress = "http://localhost:8080"
-
-var (
-	pollInterval   = 2 * time.Second
-	reportInterval = 10 * time.Second
+	"github.com/Guram-Gurych/metricserver.git/internal/config"
 )
 
 func main() {
-	a := agent.NewAgent(serverAddress, pollInterval, reportInterval)
+	cnfg := config.InitConfigAgent()
+	a := agent.NewAgent(cnfg.ServerAddress, cnfg.PollInterval, cnfg.ReportInterval)
 	a.Run()
 }
