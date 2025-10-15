@@ -15,7 +15,10 @@ type Config struct {
 func InitConfigServer() *Config {
 	var config Config
 
-	flag.StringVar(&config.ServerAddress, "a", ":8080", "Адрес для запуска HTTP-сервера")
+	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "Адрес для запуска HTTP-сервера")
+	flag.DurationVar(&config.ReportInterval, "r", 10*time.Second, "Частота отправки метрик на сервер")
+	flag.DurationVar(&config.PollInterval, "p", 2*time.Second, "Частота опроса метрик")
+
 	flag.Parse()
 
 	return &config
