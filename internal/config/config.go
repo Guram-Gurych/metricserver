@@ -14,25 +14,31 @@ type Config struct {
 
 func InitConfigServer() *Config {
 	var config Config
+	var reportIntervalSec, pollIntervalSec int64
 
-	flag.StringVar(&config.ServerAddress, "a", ":8080", "Адрес для запуска HTTP-сервера")
+	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "Адрес для запуска HTTP-сервера")
+	flag.Int64Var(&reportIntervalSec, "r", 10, "Частота отправки метрик на сервер (в секундах)")
+	flag.Int64Var(&pollIntervalSec, "p", 2, "Частота опроса метрик (в секундах)")
+
 	flag.Parse()
+
+	config.ReportInterval = time.Duration(reportIntervalSec) * time.Second
+	config.PollInterval = time.Duration(pollIntervalSec) * time.Second
 
 	return &config
 }
 
 func InitConfigAgent() *Config {
 	var config Config
-	var reportInterval int
-	var pollInterval int
+	var reportIntervalSec, pollIntervalSec int64
 
 	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "Адрес эндпоинта HTTP-сервера")
-	flag.IntVar(&reportInterval, "r", 10, "Частота отправки метрик на сервер")
-	flag.IntVar(&pollInterval, "p", 2, "Частота опроса метрик")
+	flag.Int64Var(&reportIntervalSec, "r", 10, "Частота отправки метрик на сервер (в секундах)")
+	flag.Int64Var(&pollIntervalSec, "p", 2, "Частота опроса метрик (в секундах)")
 	flag.Parse()
 
-	config.ReportInterval = time.Duration(reportInterval) * time.Second
-	config.PollInterval = time.Duration(pollInterval) * time.Second
+	config.ReportInterval = time.Duration(reportIntervalSec) * time.Second
+	config.PollInterval = time.Duration(pollIntervalSec) * time.Second
 
 	if !strings.HasPrefix(config.ServerAddress, "http://") {
 		config.ServerAddress = "http://" + config.ServerAddress
