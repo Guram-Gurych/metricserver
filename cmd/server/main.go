@@ -5,6 +5,7 @@ import (
 	"github.com/Guram-Gurych/metricserver.git/internal/handler"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository"
 	"github.com/go-chi/chi/v5"
+	"log"
 	"net/http"
 )
 
@@ -19,6 +20,6 @@ func main() {
 	r.Post("/update/", metricHandler.Post)
 
 	if err := http.ListenAndServe(cnfg.ServerAddress, r); err != nil {
-		panic(err)
+		log.Fatalf("Сервер упал: %v", err)
 	}
 }
