@@ -23,6 +23,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", metricHandler.Post)
+	r.Post("/value/", metricHandler.PostValue)
 	r.Get("/value/{metricType}/{metricName}", metricHandler.Get)
 	r.Post("/update/", metricHandler.Post)
 

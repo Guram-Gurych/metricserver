@@ -1,10 +1,14 @@
 package agent
 
 import (
+	"encoding/json"
+	"fmt"
+	models "github.com/Guram-Gurych/metricserver.git/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -28,10 +32,36 @@ func TestAgent_reportMetrics(t *testing.T) {
 	var mu sync.Mutex
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/update/" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if r.Header.Get("Content-Type") != "application/json" {
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+			return
+		}
+
+		var metrics models.Metrics
+		if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		var requestURL string
+		if metrics.MType == models.Gauge {
+			requestURL = fmt.Sprintf("/update/gauge/%s/%s", metrics.ID, strconv.FormatFloat(*metrics.Value, 'f', -1, 64))
+		} else if metrics.MType == models.Counter {
+			requestURL = fmt.Sprintf("/update/counter/%s/%s", metrics.ID, strconv.FormatInt(*metrics.Delta, 10))
+		}
+
 		mu.Lock()
-		receivedRequests = append(receivedRequests, r.URL.String())
+		receivedRequests = append(receivedRequests, requestURL)
 		mu.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(metrics)
 	}))
 	defer server.Close()
 
@@ -95,7 +125,16 @@ func TestAgent_reportMetrics(t *testing.T) {
 			mu.Unlock()
 
 			agent := NewAgent(server.URL, 1*time.Second, 2*time.Second)
-			agent.storage = tc.initialStorage
+			agent.storage = &AgentMetric{
+				Gauges:   make(map[string]float64),
+				Counters: make(map[string]int64),
+			}
+			for k, v := range tc.initialStorage.Gauges {
+				agent.storage.Gauges[k] = v
+			}
+			for k, v := range tc.initialStorage.Counters {
+				agent.storage.Counters[k] = v
+			}
 
 			agent.reportMetrics()
 

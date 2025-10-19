@@ -1,11 +1,15 @@
 package handler
 
 import (
+	"encoding/json"
+	"github.com/Guram-Gurych/metricserver.git/internal/logger"
 	"github.com/Guram-Gurych/metricserver.git/internal/model"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type MetricHandler struct {
@@ -19,6 +23,13 @@ func NewMetricHandler(repo repository.MetricRepository) *MetricHandler {
 }
 
 func (h *MetricHandler) Post(w http.ResponseWriter, r *http.Request) {
+	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+			h.handlePostJSON(w, r)
+			return
+		}
+	}
+
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 	metricValue := chi.URLParam(r, "metricValue")
@@ -56,6 +67,106 @@ func (h *MetricHandler) Post(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *MetricHandler) handlePostJSON(w http.ResponseWriter, r *http.Request) {
+	var metrics models.Metrics
+	if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	var err error
+	switch metrics.MType {
+	case models.Gauge:
+		if metrics.Value == nil {
+			http.Error(w, "Bad Request: Invalid gauge value", http.StatusBadRequest)
+			return
+		}
+		err = h.repo.UpdateGauge(metrics.ID, *metrics.Value)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		newValue, ok := h.repo.GetGauge(metrics.ID)
+		if !ok {
+			http.Error(w, "Internal Server Error after update", http.StatusInternalServerError)
+			return
+		}
+		metrics.Value = &newValue
+
+	case models.Counter:
+		if metrics.Delta == nil {
+			http.Error(w, "Bad Request: Invalid counter value", http.StatusBadRequest)
+			return
+		}
+		err = h.repo.UpdateCounter(metrics.ID, *metrics.Delta)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		newDelta, ok := h.repo.GetCounter(metrics.ID)
+		if !ok {
+			http.Error(w, "Internal Server Error after update", http.StatusInternalServerError)
+			return
+		}
+		metrics.Delta = &newDelta
+	default:
+		http.Error(w, "Bad Request: Invalid metric type", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(metrics); err != nil {
+		logger.Log.Error("Failed to encode response", zap.Error(err))
+	}
+}
+
+func (h *MetricHandler) PostValue(w http.ResponseWriter, r *http.Request) {
+	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		http.Error(w, "invalid content type", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	var metrics models.Metrics
+	if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	switch metrics.MType {
+	case models.Gauge:
+		value, ok := h.repo.GetGauge(metrics.ID)
+		if !ok {
+			http.Error(w, "Metric not found", http.StatusNotFound)
+			return
+		}
+
+		metrics.Value = &value
+	case models.Counter:
+		delta, ok := h.repo.GetCounter(metrics.ID)
+		if !ok {
+			http.Error(w, "Metric not found", http.StatusNotFound)
+			return
+		}
+		metrics.Delta = &delta
+	default:
+		http.Error(w, "Bad Request: Invalid metric type", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(metrics); err != nil {
+		logger.Log.Error("Failed to encode response", zap.Error(err))
+	}
 }
 
 func (h *MetricHandler) Get(w http.ResponseWriter, r *http.Request) {
