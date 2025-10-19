@@ -1,6 +1,7 @@
 package agent
 
 import (
+	models "github.com/Guram-Gurych/metricserver.git/internal/model"
 	"github.com/go-resty/resty/v2"
 	"log"
 	"math/rand"
@@ -82,23 +83,43 @@ func (a *Agent) reportMetrics() {
 		valueStr := strconv.FormatInt(value, 10)
 		a.sendMetric("counter", name, valueStr)
 	}
-
-	if _, ok := a.storage.Counters["PollCount"]; ok {
-		a.storage.Counters["PollCount"] = 0
-	}
 }
 
 func (a *Agent) sendMetric(metricType, metricName, metricValue string) {
-	url := a.serverAddress + "/update/{metricType}/{metricName}/{metricValue}"
+	m := models.Metrics{
+		ID:    metricName,
+		MType: metricType,
+	}
 
-	resp, err := a.client.R().
-		SetHeader("Content-Type", "text/plain").
-		SetPathParams(map[string]string{
-			"metricType":  metricType,
-			"metricName":  metricName,
-			"metricValue": metricValue,
-		}).
-		Post(url)
+	switch metricType {
+	case models.Gauge:
+		value, err := strconv.ParseFloat(metricValue, 64)
+		if err != nil {
+			log.Printf("Ошибка конвертации gauge %s: %v", metricName, err)
+			return
+		}
+		m.Value = &value
+	case models.Counter:
+		value, err := strconv.ParseInt(metricValue, 10, 64)
+		if err != nil {
+			log.Printf("Ошибка конвертации counter %s: %v", metricName, err)
+			return
+		}
+		m.Delta = &value
+
+		if metricName == "PollCount" {
+			a.storage.Counters["PollCount"] = 0
+		}
+	default:
+		log.Printf("Неизвестный тип метрики: %s", metricType)
+		return
+	}
+
+	url := a.serverAddress + "/update/"
+
+	var responseMetrics models.Metrics
+
+	resp, err := a.client.R().SetHeader("Content-Type", "application/json").SetBody(m).SetResult(&responseMetrics).Post(url)
 
 	if err != nil {
 		log.Printf("Ошибка отправки метрики %s (%s): %v", metricName, metricType, err)
@@ -106,6 +127,7 @@ func (a *Agent) sendMetric(metricType, metricName, metricValue string) {
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		log.Printf("Сервер ответил со статусом %s для метрики %s", resp.Status(), metricName)
+		log.Printf("Сервер ответил со статусом %s для метрики %s. Тело: %s", resp.Status(), metricName, resp.String())
+		return
 	}
 }

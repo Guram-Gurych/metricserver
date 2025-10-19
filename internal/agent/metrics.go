@@ -7,8 +7,8 @@ type AgentMetric struct {
 
 var GaugeMetrics = []string{
 	"Alloc", "BuckHashSys", "Frees", "GCCPUFraction", "GCSys", "HeapAlloc",
-	"HeapIdle", "HeapInuse", "HeapObjects", "HeapReleased", "HeapSys", "LastGC",
-	"Lookups", "MCacheInuse", "MCacheSys", "MSpanInuse", "MSpanSys", "Mallocs",
-	"NumForcedGC", "NumGC", "OtherSys", "PauseTotalNs", "StackInuse", "StackSys",
-	"Sys", "TotalAlloc",
+	"HeapIdle", "HeapInuse", "HeapObjects", "HeapReleased", "HeapSys", "NextGC",
+	"LastGC", "Lookups", "MCacheInuse", "MCacheSys", "MSpanInuse", "MSpanSys",
+	"Mallocs", "NumForcedGC", "NumGC", "OtherSys", "PauseTotalNs", "StackInuse",
+	"StackSys", "Sys", "TotalAlloc",
 }
