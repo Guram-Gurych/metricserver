@@ -4,6 +4,7 @@ import (
 	"github.com/Guram-Gurych/metricserver.git/internal/config"
 	"github.com/Guram-Gurych/metricserver.git/internal/handler"
 	"github.com/Guram-Gurych/metricserver.git/internal/logger"
+	"github.com/Guram-Gurych/metricserver.git/internal/middleware"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
@@ -21,7 +22,8 @@ func main() {
 	metricHandler := handler.NewMetricHandler(storage)
 
 	r := chi.NewRouter()
-	r.Use(logger.RequestLogger)
+	r.Use(middleware.RequestLogger)
+	r.Use(middleware.GzipMiddleware)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", metricHandler.Post)
 	r.Post("/value/", metricHandler.PostValue)
 	r.Get("/value/{metricType}/{metricName}", metricHandler.Get)

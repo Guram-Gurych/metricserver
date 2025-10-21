@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	models "github.com/Guram-Gurych/metricserver.git/internal/model"
@@ -32,6 +33,18 @@ func TestAgent_reportMetrics(t *testing.T) {
 	var mu sync.Mutex
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Content-Encoding") != "gzip" {
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+			return
+		}
+
+		gz, err := gzip.NewReader(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		defer gz.Close()
+
 		if r.URL.Path != "/update/" {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -42,7 +55,7 @@ func TestAgent_reportMetrics(t *testing.T) {
 		}
 
 		var metrics models.Metrics
-		if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+		if err := json.NewDecoder(gz).Decode(&metrics); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
