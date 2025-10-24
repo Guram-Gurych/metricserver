@@ -24,6 +24,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestLogger)
 	r.Use(middleware.GzipMiddleware)
+	r.Get("/", metricHandler.GetAllMetricsHTML)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", metricHandler.Post)
 	r.Post("/value/", metricHandler.PostValue)
 	r.Get("/value/{metricType}/{metricName}", metricHandler.Get)

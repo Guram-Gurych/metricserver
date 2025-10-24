@@ -12,10 +12,12 @@ import (
 )
 
 type MockMemStorage struct {
-	UpdateGaugeFunc   func(name string, value float64) error
-	UpdateCounterFunc func(name string, value int64) error
-	GetGaugeFunc      func(name string) (float64, bool)
-	GetCounterFunc    func(name string) (int64, bool)
+	UpdateGaugeFunc    func(name string, value float64) error
+	UpdateCounterFunc  func(name string, value int64) error
+	GetGaugeFunc       func(name string) (float64, bool)
+	GetCounterFunc     func(name string) (int64, bool)
+	GetAllGaugesFunc   func() map[string]float64
+	GetAllCountersFunc func() map[string]int64
 }
 
 func (m *MockMemStorage) UpdateGauge(name string, value float64) error {
@@ -44,6 +46,20 @@ func (m *MockMemStorage) GetCounter(name string) (int64, bool) {
 		return m.GetCounterFunc(name)
 	}
 	return 0, false
+}
+
+func (m *MockMemStorage) GetAllGauges() map[string]float64 {
+	if m.GetAllGaugesFunc != nil {
+		return m.GetAllGaugesFunc()
+	}
+	return nil
+}
+
+func (m *MockMemStorage) GetAllCounters() map[string]int64 {
+	if m.GetAllCountersFunc != nil {
+		return m.GetAllCountersFunc()
+	}
+	return nil
 }
 
 func TestMetricHandler_Post(t *testing.T) {
