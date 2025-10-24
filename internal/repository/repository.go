@@ -46,3 +46,17 @@ func (ms *MemStorage) GetCounter(name string) (int64, bool) {
 	val, ok := ms.counters[name]
 	return val, ok
 }
+
+func (ms *MemStorage) GetAllGauges() map[string]float64 {
+	ms.mu.RLock()
+	defer ms.mu.RUnlock()
+
+	return ms.gauges
+}
+
+func (ms *MemStorage) GetAllCounters() map[string]int64 {
+	ms.mu.RLock()
+	defer ms.mu.RUnlock()
+
+	return ms.counters
+}

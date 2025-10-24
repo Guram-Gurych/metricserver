@@ -2,12 +2,15 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Guram-Gurych/metricserver.git/internal/logger"
 	"github.com/Guram-Gurych/metricserver.git/internal/model"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
+	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -208,4 +211,40 @@ func (h *MetricHandler) Get(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *MetricHandler) GetAllMetricsHTML(w http.ResponseWriter, r *http.Request) {
+	gauges := h.repo.GetAllGauges()
+	counters := h.repo.GetAllCounters()
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+
+	gaugeNames := make([]string, 0, len(gauges))
+	for k := range gauges {
+		gaugeNames = append(gaugeNames, k)
+	}
+	sort.Strings(gaugeNames)
+
+	counterNames := make([]string, 0, len(counters))
+	for k := range counters {
+		counterNames = append(counterNames, k)
+	}
+	sort.Strings(counterNames)
+
+	io.WriteString(w, "<html><head><title>Metrics</title></head><body>")
+	io.WriteString(w, "<h1>Metrics</h1>")
+	io.WriteString(w, "<h2>Gauges</h2><ul>")
+	for _, name := range gaugeNames {
+		io.WriteString(w, fmt.Sprintf("<li>%s: %f</li>", name, gauges[name]))
+	}
+	io.WriteString(w, "</ul>")
+
+	io.WriteString(w, "<h2>Counters</h2><ul>")
+	for _, name := range counterNames {
+		io.WriteString(w, fmt.Sprintf("<li>%s: %d</li>", name, counters[name]))
+	}
+	io.WriteString(w, "</ul>")
+
+	io.WriteString(w, "</body></html>")
 }

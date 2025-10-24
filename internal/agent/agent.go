@@ -1,6 +1,9 @@
 package agent
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	models "github.com/Guram-Gurych/metricserver.git/internal/model"
 	"github.com/go-resty/resty/v2"
 	"log"
@@ -115,11 +118,31 @@ func (a *Agent) sendMetric(metricType, metricName, metricValue string) {
 		return
 	}
 
+	var buf bytes.Buffer
+	gzWriter := gzip.NewWriter(&buf)
+
+	encoder := json.NewEncoder(gzWriter)
+
+	if err := encoder.Encode(m); err != nil {
+		log.Printf("Ошибка сжатия метрики %s: %v", metricName, err)
+		return
+	}
+
+	if err := gzWriter.Close(); err != nil {
+		log.Printf("Ошибка закрытия gzip writer для метрики %s: %v", metricName, err)
+		return
+	}
+
 	url := a.serverAddress + "/update/"
 
 	var responseMetrics models.Metrics
 
-	resp, err := a.client.R().SetHeader("Content-Type", "application/json").SetBody(m).SetResult(&responseMetrics).Post(url)
+	resp, err := a.client.R().
+		SetHeader("Content-Encoding", "gzip").
+		SetHeader("Content-Type", "application/json").
+		SetBody(&buf).
+		SetResult(&responseMetrics).
+		Post(url)
 
 	if err != nil {
 		log.Printf("Ошибка отправки метрики %s (%s): %v", metricName, metricType, err)
