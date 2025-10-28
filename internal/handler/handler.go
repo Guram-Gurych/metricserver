@@ -27,10 +27,8 @@ func NewMetricHandler(repo repository.MetricRepository) *MetricHandler {
 
 func (h *MetricHandler) Post(w http.ResponseWriter, r *http.Request) {
 	if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-			h.handlePostJSON(w, r)
-			return
-		}
+		h.handlePostJSON(w, r)
+		return
 	}
 
 	metricType := chi.URLParam(r, "metricType")
