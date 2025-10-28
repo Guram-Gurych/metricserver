@@ -19,11 +19,11 @@ type Persister struct {
 	logger   *zap.Logger
 }
 
-func NewPersister(repo repository.MetricRepository, filePath string, logger zap.Logger) *Persister {
+func NewPersister(repo repository.MetricRepository, filePath string, logger *zap.Logger) *Persister {
 	return &Persister{
 		repo:     repo,
 		filePath: filePath,
-		logger:   &logger,
+		logger:   logger,
 	}
 }
 

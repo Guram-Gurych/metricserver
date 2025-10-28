@@ -51,12 +51,22 @@ func (ms *MemStorage) GetAllGauges() map[string]float64 {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
-	return ms.gauges
+	result := make(map[string]float64, len(ms.gauges))
+	for k, v := range ms.gauges {
+		result[k] = v
+	}
+
+	return result
 }
 
 func (ms *MemStorage) GetAllCounters() map[string]int64 {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
-	return ms.counters
+	result := make(map[string]int64, len(ms.counters))
+	for k, v := range ms.counters {
+		result[k] = v
+	}
+
+	return result
 }
