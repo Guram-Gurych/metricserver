@@ -36,11 +36,9 @@ func (ps *PersistentStorage) UpdateCounter(name string, value int64) error {
 		return err
 	}
 
-	if err == nil && ps.isSync {
+	if ps.isSync {
 		if saveErr := ps.persister.Save(); saveErr != nil {
 			ps.persister.logger.Error("Sync save failed", zap.Error(saveErr))
-		} else {
-			return saveErr
 		}
 	}
 
