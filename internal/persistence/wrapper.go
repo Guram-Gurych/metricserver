@@ -17,12 +17,13 @@ func NewPersistentStorage(repo repository.MetricRepository, persister *Persister
 
 func (ps *PersistentStorage) UpdateGauge(name string, value float64) error {
 	err := ps.repo.UpdateGauge(name, value)
+	if err != nil {
+		return err
+	}
 
-	if err == nil && ps.isSync {
+	if ps.isSync {
 		if saveErr := ps.persister.Save(); saveErr != nil {
 			ps.persister.logger.Error("Sync save failed", zap.Error(saveErr))
-		} else {
-			return saveErr
 		}
 	}
 
@@ -31,6 +32,9 @@ func (ps *PersistentStorage) UpdateGauge(name string, value float64) error {
 
 func (ps *PersistentStorage) UpdateCounter(name string, value int64) error {
 	err := ps.repo.UpdateCounter(name, value)
+	if err != nil {
+		return err
+	}
 
 	if err == nil && ps.isSync {
 		if saveErr := ps.persister.Save(); saveErr != nil {
