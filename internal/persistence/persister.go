@@ -44,6 +44,8 @@ func (p *Persister) Save() error {
 	if err = os.WriteFile(p.filePath, storageJson, 0644); err != nil {
 		return err
 	}
+
+	return nil
 }
 
 func (p *Persister) Load() error {
