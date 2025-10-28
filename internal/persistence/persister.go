@@ -36,12 +36,12 @@ func (p *Persister) Save() error {
 	counters := p.repo.GetAllCounters()
 
 	storage := storageFile{Gauges: gauges, Counters: counters}
-	storageJson, err := json.Marshal(storage)
+	storageJSON, err := json.Marshal(storage)
 	if err != nil {
 		return err
 	}
 
-	if err = os.WriteFile(p.filePath, storageJson, 0644); err != nil {
+	if err = os.WriteFile(p.filePath, storageJSON, 0644); err != nil {
 		return err
 	}
 
