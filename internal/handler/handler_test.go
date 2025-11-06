@@ -136,7 +136,7 @@ func TestMetricHandler_Post(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockRepo := mocks.NewMockMetricRepository(ctrl)
-			handler := NewMetricHandler(mockRepo)
+			handler := NewMetricHandler(mockRepo, nil)
 			test.setupMock(mockRepo)
 
 			var reqBody io.Reader
@@ -227,7 +227,7 @@ func TestMetricHandler_PostValue(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockRepo := mocks.NewMockMetricRepository(ctrl)
-			handler := NewMetricHandler(mockRepo)
+			handler := NewMetricHandler(mockRepo, nil)
 
 			if test.mockMetricType == models.Gauge {
 				mockRepo.EXPECT().GetGauge(test.mockMetricName).Return(test.mockGaugeValue, test.mockFound)
@@ -311,7 +311,7 @@ func TestMetricHandler_Get(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockRepo := mocks.NewMockMetricRepository(ctrl)
-			handler := NewMetricHandler(mockRepo)
+			handler := NewMetricHandler(mockRepo, nil)
 
 			if test.mockMetricType == "gauge" {
 				mockRepo.EXPECT().GetGauge(test.mockMetricName).Return(test.mockGaugeValue, test.mockFound)
