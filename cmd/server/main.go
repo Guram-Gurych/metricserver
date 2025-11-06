@@ -1,13 +1,16 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/Guram-Gurych/metricserver.git/internal/config"
+	"github.com/Guram-Gurych/metricserver.git/internal/config/db"
 	"github.com/Guram-Gurych/metricserver.git/internal/handler"
 	"github.com/Guram-Gurych/metricserver.git/internal/logger"
 	"github.com/Guram-Gurych/metricserver.git/internal/middleware"
 	"github.com/Guram-Gurych/metricserver.git/internal/persistence"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository"
 	"github.com/go-chi/chi/v5"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"go.uber.org/zap"
 	"net/http"
 	"time"
@@ -20,6 +23,18 @@ func main() {
 	defer logger.Log.Sync()
 
 	cnfg := config.InitConfigServer()
+
+	var dbConn *sql.DB
+	var err error
+	if cnfg.DatabaseDSN != "" {
+		dbConn, err = db.Initialize(cnfg.DatabaseDSN)
+		if err != nil {
+			logger.Log.Fatal("Initialization error DB", zap.Error(err))
+		}
+		defer dbConn.Close()
+		logger.Log.Info("DB connection established")
+	}
+
 	storage := repository.NewMemStorage()
 	persister := persistence.NewPersister(storage, cnfg.FileStoragePath, logger.Log)
 
@@ -58,7 +73,7 @@ func main() {
 		metricRepo = persistence.NewPersistentStorage(storage, persister, true)
 	}
 
-	metricHandler := handler.NewMetricHandler(metricRepo)
+	metricHandler := handler.NewMetricHandler(metricRepo, dbConn)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestLogger)
@@ -68,6 +83,7 @@ func main() {
 	r.Post("/value/", metricHandler.PostValue)
 	r.Get("/value/{metricType}/{metricName}", metricHandler.Get)
 	r.Post("/update/", metricHandler.Post)
+	r.Get("/ping", metricHandler.GetPing)
 
 	logger.Log.Info("Starting server", zap.String("address", cnfg.ServerAddress))
 

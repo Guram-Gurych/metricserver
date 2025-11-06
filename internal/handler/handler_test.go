@@ -2,7 +2,9 @@ package handler
 
 import (
 	models "github.com/Guram-Gurych/metricserver.git/internal/model"
+	"github.com/Guram-Gurych/metricserver.git/internal/repository/mocks"
 	"github.com/go-chi/chi/v5"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -11,68 +13,14 @@ import (
 	"testing"
 )
 
-type MockMemStorage struct {
-	UpdateGaugeFunc    func(name string, value float64) error
-	UpdateCounterFunc  func(name string, value int64) error
-	GetGaugeFunc       func(name string) (float64, bool)
-	GetCounterFunc     func(name string) (int64, bool)
-	GetAllGaugesFunc   func() map[string]float64
-	GetAllCountersFunc func() map[string]int64
-}
-
-func (m *MockMemStorage) UpdateGauge(name string, value float64) error {
-	if m.UpdateGaugeFunc != nil {
-		return m.UpdateGaugeFunc(name, value)
-	}
-	return nil
-}
-
-func (m *MockMemStorage) UpdateCounter(name string, value int64) error {
-	if m.UpdateCounterFunc != nil {
-		return m.UpdateCounterFunc(name, value)
-	}
-	return nil
-}
-
-func (m *MockMemStorage) GetGauge(name string) (float64, bool) {
-	if m.GetGaugeFunc != nil {
-		return m.GetGaugeFunc(name)
-	}
-	return 0, false
-}
-
-func (m *MockMemStorage) GetCounter(name string) (int64, bool) {
-	if m.GetCounterFunc != nil {
-		return m.GetCounterFunc(name)
-	}
-	return 0, false
-}
-
-func (m *MockMemStorage) GetAllGauges() map[string]float64 {
-	if m.GetAllGaugesFunc != nil {
-		return m.GetAllGaugesFunc()
-	}
-	return nil
-}
-
-func (m *MockMemStorage) GetAllCounters() map[string]int64 {
-	if m.GetAllCountersFunc != nil {
-		return m.GetAllCountersFunc()
-	}
-	return nil
-}
-
 func TestMetricHandler_Post(t *testing.T) {
-	mockRepo := &MockMemStorage{}
-	handler := NewMetricHandler(mockRepo)
-
 	tests := []struct {
 		name           string
 		method         string
 		url            string
 		body           string
 		contentType    string
-		setupMock      func()
+		setupMock      func(mockRepo *mocks.MockMetricRepository)
 		expectedStatus int
 		expectedBody   string
 	}{
@@ -82,12 +30,8 @@ func TestMetricHandler_Post(t *testing.T) {
 			url:         "/update/gauge/TestGauge/123.45",
 			body:        "",
 			contentType: "text/plain",
-			setupMock: func() {
-				mockRepo.UpdateGaugeFunc = func(name string, value float64) error {
-					assert.Equal(t, "TestGauge", name)
-					assert.Equal(t, 123.45, value)
-					return nil
-				}
+			setupMock: func(mockRepo *mocks.MockMetricRepository) {
+				mockRepo.EXPECT().UpdateGauge("TestGauge", 123.45).Return(nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   "",
@@ -98,12 +42,8 @@ func TestMetricHandler_Post(t *testing.T) {
 			url:         "/update/counter/TestCounter/123",
 			body:        "",
 			contentType: "text/plain",
-			setupMock: func() {
-				mockRepo.UpdateCounterFunc = func(name string, value int64) error {
-					assert.Equal(t, "TestCounter", name)
-					assert.Equal(t, int64(123), value)
-					return nil
-				}
+			setupMock: func(mockRepo *mocks.MockMetricRepository) {
+				mockRepo.EXPECT().UpdateCounter("TestCounter", int64(123)).Return(nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   "",
@@ -112,14 +52,14 @@ func TestMetricHandler_Post(t *testing.T) {
 			name:           "Error - Method GET Not Allowed",
 			method:         http.MethodGet,
 			url:            "/update/gauge/TestGauge/123.45",
-			setupMock:      func() {},
+			setupMock:      func(mockRepo *mocks.MockMetricRepository) {},
 			expectedStatus: http.StatusMethodNotAllowed,
 		},
 		{
 			name:           "Error - Empty Metric Name",
 			method:         http.MethodPost,
 			url:            "/update/gauge//123.45",
-			setupMock:      func() {},
+			setupMock:      func(mockRepo *mocks.MockMetricRepository) {},
 			expectedStatus: http.StatusNotFound,
 		},
 		{
@@ -128,16 +68,11 @@ func TestMetricHandler_Post(t *testing.T) {
 			url:         "/update/",
 			body:        `{"id":"TestGaugeJSON","type":"gauge","value":123.45}`,
 			contentType: "application/json",
-			setupMock: func() {
-				mockRepo.UpdateGaugeFunc = func(name string, value float64) error {
-					assert.Equal(t, "TestGaugeJSON", name)
-					assert.Equal(t, 123.45, value)
-					return nil
-				}
-				mockRepo.GetGaugeFunc = func(name string) (float64, bool) {
-					assert.Equal(t, "TestGaugeJSON", name)
-					return 123.45, true
-				}
+			setupMock: func(mockRepo *mocks.MockMetricRepository) {
+				gomock.InOrder(
+					mockRepo.EXPECT().UpdateGauge("TestGaugeJSON", 123.45).Return(nil),
+					mockRepo.EXPECT().GetGauge("TestGaugeJSON").Return(123.45, true),
+				)
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"id":"TestGaugeJSON","type":"gauge","value":123.45}`,
@@ -148,16 +83,11 @@ func TestMetricHandler_Post(t *testing.T) {
 			url:         "/update/",
 			body:        `{"id":"TestCounterJSON","type":"counter","delta":123}`,
 			contentType: "application/json",
-			setupMock: func() {
-				mockRepo.UpdateCounterFunc = func(name string, value int64) error {
-					assert.Equal(t, "TestCounterJSON", name)
-					assert.Equal(t, int64(123), value)
-					return nil
-				}
-				mockRepo.GetCounterFunc = func(name string) (int64, bool) {
-					assert.Equal(t, "TestCounterJSON", name)
-					return 123, true
-				}
+			setupMock: func(mockRepo *mocks.MockMetricRepository) {
+				gomock.InOrder(
+					mockRepo.EXPECT().UpdateCounter("TestCounterJSON", int64(123)).Return(nil),
+					mockRepo.EXPECT().GetCounter("TestCounterJSON").Return(int64(123), true),
+				)
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   `{"id":"TestCounterJSON","type":"counter","delta":123}`,
@@ -168,7 +98,7 @@ func TestMetricHandler_Post(t *testing.T) {
 			url:            "/update/",
 			body:           `{"id":"TestGauge",`,
 			contentType:    "application/json",
-			setupMock:      func() {},
+			setupMock:      func(mockRepo *mocks.MockMetricRepository) {},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
@@ -177,7 +107,7 @@ func TestMetricHandler_Post(t *testing.T) {
 			url:            "/update/",
 			body:           `{"id":"TestInvalid","type":"unknown","value":123}`,
 			contentType:    "application/json",
-			setupMock:      func() {},
+			setupMock:      func(mockRepo *mocks.MockMetricRepository) {},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
@@ -186,7 +116,7 @@ func TestMetricHandler_Post(t *testing.T) {
 			url:            "/update/",
 			body:           `{"id":"TestGauge","type":"gauge"}`,
 			contentType:    "application/json",
-			setupMock:      func() {},
+			setupMock:      func(mockRepo *mocks.MockMetricRepository) {},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
@@ -195,18 +125,19 @@ func TestMetricHandler_Post(t *testing.T) {
 			url:            "/update/",
 			body:           `{"id":"TestCounter","type":"counter"}`,
 			contentType:    "application/json",
-			setupMock:      func() {},
+			setupMock:      func(mockRepo *mocks.MockMetricRepository) {},
 			expectedStatus: http.StatusBadRequest,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mockRepo.UpdateGaugeFunc = nil
-			mockRepo.UpdateCounterFunc = nil
-			mockRepo.GetGaugeFunc = nil
-			mockRepo.GetCounterFunc = nil
-			test.setupMock()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRepo := mocks.NewMockMetricRepository(ctrl)
+			handler := NewMetricHandler(mockRepo, nil)
+			test.setupMock(mockRepo)
 
 			var reqBody io.Reader
 			if test.body != "" {
@@ -292,26 +223,18 @@ func TestMetricHandler_PostValue(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mockRepo := &MockMemStorage{}
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRepo := mocks.NewMockMetricRepository(ctrl)
+			handler := NewMetricHandler(mockRepo, nil)
 
 			if test.mockMetricType == models.Gauge {
-				mockRepo.GetGaugeFunc = func(name string) (float64, bool) {
-					if name == test.mockMetricName {
-						return test.mockGaugeValue, test.mockFound
-					}
-					return 0, false
-				}
+				mockRepo.EXPECT().GetGauge(test.mockMetricName).Return(test.mockGaugeValue, test.mockFound)
 			}
 			if test.mockMetricType == models.Counter {
-				mockRepo.GetCounterFunc = func(name string) (int64, bool) {
-					if name == test.mockMetricName {
-						return test.mockCounterValue, test.mockFound
-					}
-					return 0, false
-				}
+				mockRepo.EXPECT().GetCounter(test.mockMetricName).Return(test.mockCounterValue, test.mockFound)
 			}
-
-			handler := NewMetricHandler(mockRepo)
 
 			reqBody := strings.NewReader(test.body)
 			req := httptest.NewRequest(http.MethodPost, "/value/", reqBody)
@@ -376,6 +299,7 @@ func TestMetricHandler_Get(t *testing.T) {
 		{
 			name:           "Неверный тип метрики",
 			url:            "/value/invalidType/SomeMetric",
+			mockMetricType: "",
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "Invalid metric type\n",
 		},
@@ -383,25 +307,18 @@ func TestMetricHandler_Get(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			mockRepo := &MockMemStorage{}
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRepo := mocks.NewMockMetricRepository(ctrl)
+			handler := NewMetricHandler(mockRepo, nil)
+
 			if test.mockMetricType == "gauge" {
-				mockRepo.GetGaugeFunc = func(name string) (float64, bool) {
-					if name == test.mockMetricName {
-						return test.mockGaugeValue, test.mockFound
-					}
-					return 0, false
-				}
+				mockRepo.EXPECT().GetGauge(test.mockMetricName).Return(test.mockGaugeValue, test.mockFound)
 			}
 			if test.mockMetricType == "counter" {
-				mockRepo.GetCounterFunc = func(name string) (int64, bool) {
-					if name == test.mockMetricName {
-						return test.mockCounterValue, test.mockFound
-					}
-					return 0, false
-				}
+				mockRepo.EXPECT().GetCounter(test.mockMetricName).Return(test.mockCounterValue, test.mockFound)
 			}
-
-			handler := NewMetricHandler(mockRepo)
 
 			req := httptest.NewRequest(http.MethodGet, test.url, nil)
 			rec := httptest.NewRecorder()

@@ -11,10 +11,11 @@ import (
 
 type Config struct {
 	ServerAddress   string
+	FileStoragePath string
+	DatabaseDSN     string
 	ReportInterval  time.Duration
 	PollInterval    time.Duration
 	StoreInterval   time.Duration
-	FileStoragePath string
 	Restore         bool
 }
 
@@ -23,8 +24,9 @@ func InitConfigServer() *Config {
 	var storeInterval int64
 
 	flag.StringVar(&config.ServerAddress, "a", "localhost:8080", "The address for launching the HTTP server")
-	flag.Int64Var(&storeInterval, "i", 300, "the time interval after which the server readings are saved to disk (in seconds)")
 	flag.StringVar(&config.FileStoragePath, "f", "/tmp/metrics-db.json", "The name of the file where the current values are saved")
+	flag.StringVar(&config.DatabaseDSN, "d", "", "DB connection address")
+	flag.Int64Var(&storeInterval, "i", 300, "the time interval after which the server readings are saved to disk (in seconds)")
 	flag.BoolVar(&config.Restore, "r", true, "The value that determines whether or not to load previously saved values from the specified file at server startup")
 	flag.Parse()
 
@@ -34,16 +36,20 @@ func InitConfigServer() *Config {
 		config.ServerAddress = envAddr
 	}
 
+	if envFileStoragePath := os.Getenv("FILE_STORAGE_PATH"); envFileStoragePath != "" {
+		config.FileStoragePath = envFileStoragePath
+	}
+
+	if envDatabaseDSN := os.Getenv("DATABASE_DSN"); envDatabaseDSN != "" {
+		config.DatabaseDSN = envDatabaseDSN
+	}
+
 	if envStoreInterval := os.Getenv("STORE_INTERVAL"); envStoreInterval != "" {
 		if val, err := strconv.ParseInt(envStoreInterval, 10, 64); err != nil {
 			// loger
 		} else {
 			config.StoreInterval = time.Duration(val) * time.Second
 		}
-	}
-
-	if envFileStoragePath := os.Getenv("FILE_STORAGE_PATH"); envFileStoragePath != "" {
-		config.FileStoragePath = envFileStoragePath
 	}
 
 	if envRestore := os.Getenv("RESTORE"); envRestore != "" {

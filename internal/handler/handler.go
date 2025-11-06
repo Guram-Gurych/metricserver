@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/Guram-Gurych/metricserver.git/internal/logger"
@@ -13,15 +15,18 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type MetricHandler struct {
 	repo repository.MetricRepository
+	db   *sql.DB
 }
 
-func NewMetricHandler(repo repository.MetricRepository) *MetricHandler {
+func NewMetricHandler(repo repository.MetricRepository, db *sql.DB) *MetricHandler {
 	return &MetricHandler{
 		repo: repo,
+		db:   db,
 	}
 }
 
@@ -245,4 +250,16 @@ func (h *MetricHandler) GetAllMetricsHTML(w http.ResponseWriter, r *http.Request
 	io.WriteString(w, "</ul>")
 
 	io.WriteString(w, "</body></html>")
+}
+
+func (h *MetricHandler) GetPing(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 1*time.Second)
+	defer cancel()
+
+	err := h.db.PingContext(ctx)
+	if err != nil {
+		http.Error(w, "Server error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
