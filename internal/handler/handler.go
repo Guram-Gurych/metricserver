@@ -53,14 +53,14 @@ func (h *MetricHandler) Post(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request: Invalid gauge value", http.StatusBadRequest)
 			return
 		}
-		err = h.repo.UpdateGauge(metricName, value)
+		err = h.repo.UpdateGauge(r.Context(), metricName, value)
 	case models.Counter:
 		value, parseErr := strconv.ParseInt(metricValue, 10, 64)
 		if parseErr != nil {
 			http.Error(w, "Bad Request: Invalid counter value", http.StatusBadRequest)
 			return
 		}
-		err = h.repo.UpdateCounter(metricName, value)
+		err = h.repo.UpdateCounter(r.Context(), metricName, value)
 	default:
 		http.Error(w, "Bad Request: Invalid metric type", http.StatusBadRequest)
 		return
@@ -90,13 +90,13 @@ func (h *MetricHandler) handlePostJSON(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request: Invalid gauge value", http.StatusBadRequest)
 			return
 		}
-		err = h.repo.UpdateGauge(metrics.ID, *metrics.Value)
+		err = h.repo.UpdateGauge(r.Context(), metrics.ID, *metrics.Value)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
-		newValue, ok := h.repo.GetGauge(metrics.ID)
+		newValue, ok := h.repo.GetGauge(r.Context(), metrics.ID)
 		if !ok {
 			http.Error(w, "Internal Server Error after update", http.StatusInternalServerError)
 			return
@@ -108,13 +108,13 @@ func (h *MetricHandler) handlePostJSON(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request: Invalid counter value", http.StatusBadRequest)
 			return
 		}
-		err = h.repo.UpdateCounter(metrics.ID, *metrics.Delta)
+		err = h.repo.UpdateCounter(r.Context(), metrics.ID, *metrics.Delta)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 
-		newDelta, ok := h.repo.GetCounter(metrics.ID)
+		newDelta, ok := h.repo.GetCounter(r.Context(), metrics.ID)
 		if !ok {
 			http.Error(w, "Internal Server Error after update", http.StatusInternalServerError)
 			return
@@ -148,7 +148,7 @@ func (h *MetricHandler) PostValue(w http.ResponseWriter, r *http.Request) {
 
 	switch metrics.MType {
 	case models.Gauge:
-		value, ok := h.repo.GetGauge(metrics.ID)
+		value, ok := h.repo.GetGauge(r.Context(), metrics.ID)
 		if !ok {
 			http.Error(w, "Metric not found", http.StatusNotFound)
 			return
@@ -156,7 +156,7 @@ func (h *MetricHandler) PostValue(w http.ResponseWriter, r *http.Request) {
 
 		metrics.Value = &value
 	case models.Counter:
-		delta, ok := h.repo.GetCounter(metrics.ID)
+		delta, ok := h.repo.GetCounter(r.Context(), metrics.ID)
 		if !ok {
 			http.Error(w, "Metric not found", http.StatusNotFound)
 			return
@@ -186,14 +186,14 @@ func (h *MetricHandler) Get(w http.ResponseWriter, r *http.Request) {
 	case models.Gauge:
 		var value float64
 
-		value, ok = h.repo.GetGauge(metricName)
+		value, ok = h.repo.GetGauge(r.Context(), metricName)
 		if ok {
 			valueStr = strconv.FormatFloat(value, 'f', -1, 64)
 		}
 	case models.Counter:
 		var value int64
 
-		value, ok = h.repo.GetCounter(metricName)
+		value, ok = h.repo.GetCounter(r.Context(), metricName)
 		if ok {
 			valueStr = strconv.FormatInt(value, 10)
 		}
@@ -217,8 +217,8 @@ func (h *MetricHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MetricHandler) GetAllMetricsHTML(w http.ResponseWriter, r *http.Request) {
-	gauges := h.repo.GetAllGauges()
-	counters := h.repo.GetAllCounters()
+	gauges := h.repo.GetAllGauges(r.Context())
+	counters := h.repo.GetAllCounters(r.Context())
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)

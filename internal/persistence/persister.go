@@ -1,11 +1,13 @@
 package persistence
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository"
 	"go.uber.org/zap"
 	"os"
+	"time"
 )
 
 type storageFile struct {
@@ -32,8 +34,11 @@ func (p *Persister) Save() error {
 		return nil
 	}
 
-	gauges := p.repo.GetAllGauges()
-	counters := p.repo.GetAllCounters()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	gauges := p.repo.GetAllGauges(ctx)
+	counters := p.repo.GetAllCounters(ctx)
 
 	storage := storageFile{Gauges: gauges, Counters: counters}
 	storageJSON, err := json.Marshal(storage)
@@ -66,15 +71,18 @@ func (p *Persister) Load() error {
 		return err
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	for key, value := range storage.Gauges {
-		err = p.repo.UpdateGauge(key, value)
+		err = p.repo.UpdateGauge(ctx, key, value)
 		if err != nil {
 			return err
 		}
 	}
 
 	for key, value := range storage.Counters {
-		err = p.repo.UpdateCounter(key, value)
+		err = p.repo.UpdateCounter(ctx, key, value)
 		if err != nil {
 			return err
 		}

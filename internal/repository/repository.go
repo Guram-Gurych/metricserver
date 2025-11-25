@@ -1,6 +1,9 @@
 package repository
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 type MemStorage struct {
 	gauges   map[string]float64
@@ -15,7 +18,7 @@ func NewMemStorage() *MemStorage {
 	}
 }
 
-func (ms *MemStorage) UpdateGauge(name string, value float64) error {
+func (ms *MemStorage) UpdateGauge(_ context.Context, name string, value float64) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
@@ -23,7 +26,7 @@ func (ms *MemStorage) UpdateGauge(name string, value float64) error {
 	return nil
 }
 
-func (ms *MemStorage) UpdateCounter(name string, value int64) error {
+func (ms *MemStorage) UpdateCounter(_ context.Context, name string, value int64) error {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
@@ -31,7 +34,7 @@ func (ms *MemStorage) UpdateCounter(name string, value int64) error {
 	return nil
 }
 
-func (ms *MemStorage) GetGauge(name string) (float64, bool) {
+func (ms *MemStorage) GetGauge(_ context.Context, name string) (float64, bool) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
@@ -39,7 +42,7 @@ func (ms *MemStorage) GetGauge(name string) (float64, bool) {
 	return val, ok
 }
 
-func (ms *MemStorage) GetCounter(name string) (int64, bool) {
+func (ms *MemStorage) GetCounter(_ context.Context, name string) (int64, bool) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
@@ -47,7 +50,7 @@ func (ms *MemStorage) GetCounter(name string) (int64, bool) {
 	return val, ok
 }
 
-func (ms *MemStorage) GetAllGauges() map[string]float64 {
+func (ms *MemStorage) GetAllGauges(_ context.Context) map[string]float64 {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
@@ -59,7 +62,7 @@ func (ms *MemStorage) GetAllGauges() map[string]float64 {
 	return result
 }
 
-func (ms *MemStorage) GetAllCounters() map[string]int64 {
+func (ms *MemStorage) GetAllCounters(_ context.Context) map[string]int64 {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
