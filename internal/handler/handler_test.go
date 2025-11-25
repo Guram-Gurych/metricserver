@@ -4,8 +4,8 @@ import (
 	models "github.com/Guram-Gurych/metricserver.git/internal/model"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository/mocks"
 	"github.com/go-chi/chi/v5"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -31,7 +31,7 @@ func TestMetricHandler_Post(t *testing.T) {
 			body:        "",
 			contentType: "text/plain",
 			setupMock: func(mockRepo *mocks.MockMetricRepository) {
-				mockRepo.EXPECT().UpdateGauge("TestGauge", 123.45).Return(nil)
+				mockRepo.EXPECT().UpdateGauge(gomock.Any(), "TestGauge", 123.45).Return(nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   "",
@@ -43,7 +43,7 @@ func TestMetricHandler_Post(t *testing.T) {
 			body:        "",
 			contentType: "text/plain",
 			setupMock: func(mockRepo *mocks.MockMetricRepository) {
-				mockRepo.EXPECT().UpdateCounter("TestCounter", int64(123)).Return(nil)
+				mockRepo.EXPECT().UpdateCounter(gomock.Any(), "TestCounter", int64(123)).Return(nil)
 			},
 			expectedStatus: http.StatusOK,
 			expectedBody:   "",
@@ -70,8 +70,8 @@ func TestMetricHandler_Post(t *testing.T) {
 			contentType: "application/json",
 			setupMock: func(mockRepo *mocks.MockMetricRepository) {
 				gomock.InOrder(
-					mockRepo.EXPECT().UpdateGauge("TestGaugeJSON", 123.45).Return(nil),
-					mockRepo.EXPECT().GetGauge("TestGaugeJSON").Return(123.45, true),
+					mockRepo.EXPECT().UpdateGauge(gomock.Any(), "TestGaugeJSON", 123.45).Return(nil),
+					mockRepo.EXPECT().GetGauge(gomock.Any(), "TestGaugeJSON").Return(123.45, true),
 				)
 			},
 			expectedStatus: http.StatusOK,
@@ -85,8 +85,8 @@ func TestMetricHandler_Post(t *testing.T) {
 			contentType: "application/json",
 			setupMock: func(mockRepo *mocks.MockMetricRepository) {
 				gomock.InOrder(
-					mockRepo.EXPECT().UpdateCounter("TestCounterJSON", int64(123)).Return(nil),
-					mockRepo.EXPECT().GetCounter("TestCounterJSON").Return(int64(123), true),
+					mockRepo.EXPECT().UpdateCounter(gomock.Any(), "TestCounterJSON", int64(123)).Return(nil),
+					mockRepo.EXPECT().GetCounter(gomock.Any(), "TestCounterJSON").Return(int64(123), true),
 				)
 			},
 			expectedStatus: http.StatusOK,
@@ -230,10 +230,10 @@ func TestMetricHandler_PostValue(t *testing.T) {
 			handler := NewMetricHandler(mockRepo, nil)
 
 			if test.mockMetricType == models.Gauge {
-				mockRepo.EXPECT().GetGauge(test.mockMetricName).Return(test.mockGaugeValue, test.mockFound)
+				mockRepo.EXPECT().GetGauge(gomock.Any(), test.mockMetricName).Return(test.mockGaugeValue, test.mockFound)
 			}
 			if test.mockMetricType == models.Counter {
-				mockRepo.EXPECT().GetCounter(test.mockMetricName).Return(test.mockCounterValue, test.mockFound)
+				mockRepo.EXPECT().GetCounter(gomock.Any(), test.mockMetricName).Return(test.mockCounterValue, test.mockFound)
 			}
 
 			reqBody := strings.NewReader(test.body)
@@ -314,10 +314,10 @@ func TestMetricHandler_Get(t *testing.T) {
 			handler := NewMetricHandler(mockRepo, nil)
 
 			if test.mockMetricType == "gauge" {
-				mockRepo.EXPECT().GetGauge(test.mockMetricName).Return(test.mockGaugeValue, test.mockFound)
+				mockRepo.EXPECT().GetGauge(gomock.Any(), test.mockMetricName).Return(test.mockGaugeValue, test.mockFound)
 			}
 			if test.mockMetricType == "counter" {
-				mockRepo.EXPECT().GetCounter(test.mockMetricName).Return(test.mockCounterValue, test.mockFound)
+				mockRepo.EXPECT().GetCounter(gomock.Any(), test.mockMetricName).Return(test.mockCounterValue, test.mockFound)
 			}
 
 			req := httptest.NewRequest(http.MethodGet, test.url, nil)

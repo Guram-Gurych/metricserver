@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"github.com/Guram-Gurych/metricserver.git/internal/repository"
 	"go.uber.org/zap"
 )
@@ -15,8 +16,8 @@ func NewPersistentStorage(repo repository.MetricRepository, persister *Persister
 	return &PersistentStorage{repo: repo, persister: persister, isSync: storeInterval}
 }
 
-func (ps *PersistentStorage) UpdateGauge(name string, value float64) error {
-	err := ps.repo.UpdateGauge(name, value)
+func (ps *PersistentStorage) UpdateGauge(ctx context.Context, name string, value float64) error {
+	err := ps.repo.UpdateGauge(ctx, name, value)
 	if err != nil {
 		return err
 	}
@@ -30,8 +31,8 @@ func (ps *PersistentStorage) UpdateGauge(name string, value float64) error {
 	return err
 }
 
-func (ps *PersistentStorage) UpdateCounter(name string, value int64) error {
-	err := ps.repo.UpdateCounter(name, value)
+func (ps *PersistentStorage) UpdateCounter(ctx context.Context, name string, value int64) error {
+	err := ps.repo.UpdateCounter(ctx, name, value)
 	if err != nil {
 		return err
 	}
@@ -45,18 +46,18 @@ func (ps *PersistentStorage) UpdateCounter(name string, value int64) error {
 	return err
 }
 
-func (ps *PersistentStorage) GetGauge(name string) (float64, bool) {
-	return ps.repo.GetGauge(name)
+func (ps *PersistentStorage) GetGauge(ctx context.Context, name string) (float64, bool) {
+	return ps.repo.GetGauge(ctx, name)
 }
 
-func (ps *PersistentStorage) GetCounter(name string) (int64, bool) {
-	return ps.repo.GetCounter(name)
+func (ps *PersistentStorage) GetCounter(ctx context.Context, name string) (int64, bool) {
+	return ps.repo.GetCounter(ctx, name)
 }
 
-func (ps *PersistentStorage) GetAllGauges() map[string]float64 {
-	return ps.repo.GetAllGauges()
+func (ps *PersistentStorage) GetAllGauges(ctx context.Context) map[string]float64 {
+	return ps.repo.GetAllGauges(ctx)
 }
 
-func (ps *PersistentStorage) GetAllCounters() map[string]int64 {
-	return ps.repo.GetAllCounters()
+func (ps *PersistentStorage) GetAllCounters(ctx context.Context) map[string]int64 {
+	return ps.repo.GetAllCounters(ctx)
 }
