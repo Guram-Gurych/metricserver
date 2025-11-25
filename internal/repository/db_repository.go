@@ -82,6 +82,10 @@ func (db *dbRepository) GetAllGauges(ctx context.Context) map[string]float64 {
 		gauges[id] = value
 	}
 
+	if err := rows.Err(); err != nil {
+		return gauges
+	}
+
 	return gauges
 }
 func (db *dbRepository) GetAllCounters(ctx context.Context) map[string]int64 {
@@ -100,6 +104,10 @@ func (db *dbRepository) GetAllCounters(ctx context.Context) map[string]int64 {
 			continue
 		}
 		counters[id] = delta
+	}
+
+	if err := rows.Err(); err != nil {
+		return counters
 	}
 
 	return counters
